@@ -1,0 +1,8 @@
+# Netlify settings for Nexus Hub.
+# The page (public/) is served as static files; everything under /api/* is the function in netlify/functions/api.mjs.
+[build]
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
