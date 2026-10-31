@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nexus Hub</title>
+<style>
+:root{
+  --bg:#0e1117;--panel:#161b24;--panel2:#1d2430;--line:#2a3342;--text:#e6e9ef;--muted:#8b95a7;
+  --accent:#6c8cff;--accent2:#8a6cff;--ok:#2fbf71;--warn:#e6a93a;--bad:#e5484d;--radius:12px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;outline:none;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:8px 12px}
+button:hover{border-color:var(--accent)}
+button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;font-weight:600}
+button.danger{color:var(--bad)}
+button.icon{width:36px;height:36px;padding:0;display:grid;place-items:center;position:relative}
+button.icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 6px);right:0;background:#000;color:#fff;font-size:12px;padding:4px 8px;border-radius:6px;white-space:nowrap;z-index:50;pointer-events:none}
+.hidden{display:none!important}
+
+.nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:rgba(14,17,23,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+.brand .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;color:#fff;font-size:16px}
+.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.badge-mode{font-size:12px;color:var(--muted);padding:4px 8px;border:1px solid var(--line);border-radius:99px}
+
+main{max-width:1200px;margin:0 auto;padding:20px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.toolbar input[type=search]{flex:1;min-width:200px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px}
+.card:hover{border-color:#3a4660}
+.card .top{display:flex;gap:10px;align-items:center}
+.fav{width:36px;height:36px;border-radius:9px;background:var(--panel2);display:grid;place-items:center;overflow:hidden;flex:none;font-weight:700;color:var(--muted)}
+.fav img{width:24px;height:24px;object-fit:contain}
+.card h3{margin:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .host{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.titles{min-width:0;flex:1}
+.meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+.st{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;border:none}
+.st.Working{background:rgba(47,191,113,.15);color:var(--ok)}
+.st.Testing{background:rgba(230,169,58,.15);color:var(--warn)}
+.st.Down{background:rgba(229,72,77,.15);color:var(--bad)}
+.card .row{display:flex;gap:6px;flex-wrap:wrap}
+.card .row button{padding:6px 10px;font-size:13px}
+.empty{text-align:center;color:var(--muted);padding:70px 20px;border:1px dashed var(--line);border-radius:var(--radius)}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:grid;place-items:center;z-index:40;padding:16px;overflow:auto}
+.dialog{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;width:100%;max-width:440px}
+.dialog.wide{max-width:1100px}
+.dialog h2{margin:0 0 12px;font-size:17px}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.field label{font-size:12px;color:var(--muted)}
+.foot{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap;align-items:center}
+.hint{color:var(--muted);font-size:12px}
+textarea.bulk{width:100%;min-height:140px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;resize:vertical}
+.tablewrap{max-height:42vh;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:10px}
+table{border-collapse:collapse;width:100%}
+th,td{padding:6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{position:sticky;top:0;background:var(--panel2);font-size:12px;color:var(--muted);z-index:1}
+td input,td select{width:100%}
+td.logo{display:flex;gap:6px;align-items:center;min-width:170px}
+td.logo img{width:24px;height:24px;object-fit:contain;flex:none}
+tr.dup{background:rgba(230,169,58,.07)}
+tr.invalid input.url{border-color:var(--bad)}
+.dupbox{font-size:12px;color:var(--warn);margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.dupbox button{padding:3px 8px;font-size:12px}
+.dupbox button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.skipped{margin-top:10px;font-size:12px;color:var(--warn);max-height:90px;overflow:auto;font-family:ui-monospace,monospace;white-space:pre-wrap}
+
+.overlay{position:fixed;inset:0;background:#000;z-index:60;display:flex;flex-direction:column}
+.overlay .bar{display:flex;gap:8px;align-items:center;padding:8px 12px;background:var(--panel)}
+.overlay .bar span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12px}
+.overlay iframe{flex:1;border:0;width:100%;background:#fff}
+.toasts{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:8px;align-items:center;max-width:90vw;pointer-events:none}
+.toast{background:#000;border:1px solid var(--line);padding:10px 16px;border-radius:10px;max-width:90vw}
+
+/* sign up / login */
+.authwrap{min-height:calc(100vh - 62px);display:grid;place-items:center;padding:20px}
+.authcard{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+.authcard h1{margin:0 0 4px;font-size:22px}
+.authcard .sub{color:var(--muted);margin:0 0 16px}
+.authcard form{display:flex;flex-direction:column;gap:10px}
+.authcard input[type=text],.authcard input[type=password]{width:100%}
+.rolepick{display:flex;gap:8px}
+.rolepick label{flex:1;display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--panel2)}
+.rolepick label:has(input:checked){border-color:var(--accent)}
+.msg{font-size:13px;min-height:18px}
+.msg.err{color:var(--bad)}
+.msg.good{color:var(--ok)}
+.authlinks{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.authlinks .lbl{width:100%;color:var(--muted);font-size:12px}
+.authlinks button{flex:1}
+.spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:6px auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.badge-count{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.pendrow{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--panel2)}
+.pendrow .who{font-weight:600}
+.pendrow .when{color:var(--muted);font-size:12px;margin:2px 0 8px;word-break:break-word}
+.pendrow .btns,td .btns{display:flex;gap:6px;flex-wrap:wrap}
+td .btns button{padding:4px 10px;font-size:12px}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="brand"><div class="logo">N</div><span>Nexus Hub</span></div>
+  <div class="actions hidden" id="navTools">
+    <button id="btnBell" class="icon admin-only hidden" data-tip="Approvals" aria-label="Approvals">
+      <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg>
+      <span id="bellBadge" class="badge-count hidden">0</span>
+    </button>
+    <span class="badge-mode" id="modeBadge"></span>
+    <button id="btnMembers" class="admin-only">Members</button>
+    <button id="btnBulk" class="admin-only">Bulk Add</button>
+    <button id="btnAdd" class="primary admin-only">Add Link</button>
+    <button id="btnUpload" class="icon admin-only" data-tip="Upload JSON" aria-label="Upload JSON">
+      <svg viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
+    </button>
+    <button id="btnDownload" class="icon admin-only" data-tip="Download JSON" aria-label="Download JSON">
+      <svg viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>
+    </button>
+    <button id="btnAuth">Log out</button>
+    <input type="file" id="fileInput" accept="application/json,.json" class="hidden">
+  </div>
+</header>
+
+<main id="authRoot" class="authwrap"></main>
+
+<main id="appRoot" class="hidden">
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="Search links...">
+    <select id="catFilter"></select>
+    <select id="statusFilter">
+      <option value="">All statuses</option>
+      <option>Working</option><option>Testing</option><option>Down</option>
+    </select>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty hidden" id="empty"></div>
+</main>
+
+<datalist id="catList"></datalist>
+<div id="modalRoot"></div>
+
+<script>
+/* ============ helpers ============ */
+const $ = (s, r = document) => r.querySelector(s);
+function h(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else if (k === 'value' || k === 'checked') e[k] = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, '');
+    else e.setAttribute(k, v);
+  }
+  kids.flat().forEach(c => { if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(c)); });
+  return e;
+}
+function toast(msg, ms = 3200) {
+  let box = document.querySelector('.toasts');
+  if (!box) { box = h('div', { class: 'toasts' }); document.body.append(box); }
+  const t = h('div', { class: 'toast', text: msg });
+  box.append(t);
+  setTimeout(() => t.remove(), ms);
+}
+
+/* ============ parser (kept self-contained so it can be tested) ============ */
+// <PARSER>
+const STATUSES = ['Working', 'Testing', 'Down'];
+const STATUS_ALIASES = {
+  working: 'Working', up: 'Working', online: 'Working', active: 'Working', ok: 'Working',
+  testing: 'Testing', test: 'Testing', unknown: 'Testing', unverified: 'Testing',
+  down: 'Down', dead: 'Down', offline: 'Down', blocked: 'Down'
+};
+const URL_RE = /\bhttps?:\/\/[^\s,|<>"'`\]\)]+|(?<![\w@.\/:-])(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?::\d+)?(?:\/[^\s,|<>"'`\]\)]*)?/gi;
+
+function normalizeUrl(s) {
+  if (!s) return null;
+  s = String(s).trim().replace(/^[<("'`\[]+|[>)"'`\].,;:!?]+$/g, '');
+  if (!s || /\s/.test(s)) return null;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) s = 'https://' + s;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    if (!u.hostname.includes('.') && u.hostname !== 'localhost') return null;
+    return u.href;
+  } catch (e) { return null; }
+}
+function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
+function autoDeriveTitle(url) {
+  const host = hostOf(url);
+  if (!host) return 'Untitled';
+  const parts = host.split('.');
+  const label = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+function faviconFor(url) {
+  const host = hostOf(url);
+  return host ? 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(host) + '&sz=64' : '';
+}
+function asStatus(tok) { return STATUS_ALIASES[String(tok || '').trim().toLowerCase()] || null; }
+function stripBullet(l) { return l.replace(/^\s*(?:[-*\u2022]|\d+[.)])\s+/, ''); }
+
+// Returns an array of {title,url,category,status,logo} for one line ([] if no URL found)
+function parseLine(raw) {
+  let line = stripBullet(String(raw).replace(/\r/g, '').trim());
+  if (!line || /^(#|\/\/)/.test(line)) return [];
+  const delim = line.includes('|') ? '|' : (line.includes('\t') ? '\t' : null);
+
+  if (delim) {
+    const parts = line.split(delim).map(s => s.trim());
+    const imgExt = p => { const n = normalizeUrl(p); try { return !!n && /\.(png|jpe?g|gif|webp|svg|ico|avif)$/i.test(new URL(n).pathname); } catch (e) { return false; } };
+    let idx = parts.findIndex(p => normalizeUrl(p) && !imgExt(p));   // prefer a page link over an image link
+    if (idx < 0) idx = parts.findIndex(p => normalizeUrl(p));
+    if (idx < 0) return [];
+    const url = normalizeUrl(parts[idx]);
+    let title = '', after = parts.slice(idx + 1).filter(Boolean);
+    let preLogo = '';
+    for (const p of parts.slice(0, idx).filter(Boolean)) {                // Title | URL | ...
+      if (normalizeUrl(p)) { if (!preLogo) preLogo = normalizeUrl(p); }
+      else if (!title) title = p;
+    }
+    const row = { title, url, category: '', status: '', logo: preLogo };
+    for (const f of after) {
+      if (asStatus(f) && !row.status) row.status = asStatus(f);
+      else if (normalizeUrl(f) && !row.logo) row.logo = normalizeUrl(f);
+      else if (!row.category) row.category = f;
+    }
+    return [row];
+  }
+
+  // markdown links: [Title](url) -> keep the text as the title, leave the url in place
+  let mdTitle = '';
+  line = line.replace(/\[([^\]]*)\]\(\s*([^)\s]+)\s*\)/, (_, t, u) => { mdTitle = t.trim(); return u; });
+
+  const matches = [...line.matchAll(URL_RE)]
+    .map(m => ({ raw: m[0], url: normalizeUrl(m[0]), index: m.index }))
+    .filter(m => m.url);
+  if (!matches.length) return [];
+
+  // one page link + image link(s) on the same line => the image becomes the logo
+  const isImg = x => { try { return /\.(png|jpe?g|gif|webp|svg|ico|avif)$/i.test(new URL(x.url).pathname); } catch (e) { return false; } };
+  const imgs = matches.filter(isImg), pages = matches.filter(x => !isImg(x));
+  let m, foundLogo = '';
+  if (pages.length === 1) { m = pages[0]; foundLogo = imgs.length ? imgs[0].url : ''; }
+  else if (matches.length === 1) { m = matches[0]; }
+  else {                                          // several links on one line
+    return matches.map(x => ({ title: '', url: x.url, category: '', status: '', logo: '' }));
+  }
+  let text = line;
+  [...matches].sort((a, b) => b.index - a.index).forEach(x => { text = text.slice(0, x.index) + ' ' + text.slice(x.index + x.raw.length); });
+  const rest = text
+    .split(/[,;]/).map(s => s.replace(/^[\s\-\u2013\u2014:=>]+|[\s\-\u2013\u2014:=>]+$/g, '').trim()).filter(Boolean);
+  const row = { title: mdTitle, url: m.url, category: '', status: '', logo: foundLogo };
+  for (const t of rest) {
+    if (asStatus(t) && !row.status) row.status = asStatus(t);
+    else if (!row.title) row.title = t;
+    else if (!row.category) row.category = t;
+  }
+  return [row];
+}
+
+// text -> { rows, skipped }
+function parseBulk(text) {
+  const rows = [], skipped = [], seen = new Set();
+  String(text).split(/\r\n|\n|\r/).forEach(line => {
+    if (!line.trim() || /^(#|\/\/)/.test(line.trim())) return;
+    const parsed = parseLine(line);
+    if (!parsed.length) { skipped.push(line.trim()); return; }
+    parsed.forEach(r => {
+      if (seen.has(r.url)) return;                // duplicate inside the paste
+      seen.add(r.url); rows.push(r);
+    });
+  });
+  return { rows, skipped };
+}
+// </PARSER>
+
+/* ============ image helpers ============ */
+const isDataImg = s => /^data:image\//i.test(s || '');
+function cleanLogo(s) {                       // accepts http(s) URLs or uploaded data: images
+  s = String(s || '').trim();
+  if (!s) return '';
+  if (isDataImg(s)) return s.length < 400000 ? s : '';
+  return normalizeUrl(s) || '';
+}
+function fileToDataUrl(file, max = 96) {      // shrink so many uploads fit in localStorage
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) return reject(new Error('not an image'));
+    const objUrl = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, max / Math.max(img.width, img.height, 1));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.width * s)); c.height = Math.max(1, Math.round(img.height * s));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(objUrl);
+      resolve(c.toDataURL('image/webp', 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(objUrl); reject(new Error('could not read image')); };
+    img.src = objUrl;
+  });
+}
+function pickFiles(multiple) {
+  return new Promise(resolve => {
+    const i = h('input', { type: 'file', accept: 'image/*', multiple: multiple || null, style: 'display:none' });
+    document.body.append(i);
+    const done = files => { i.remove(); resolve(files); };
+    i.addEventListener('change', () => done([...i.files]));
+    i.addEventListener('cancel', () => done([]));
+    i.click();
+  });
+}
+
+/* ============ state ============ */
+let me = null, links = [], isAdmin = false, isOwner = false;
+let pending = { logins: [], accounts: [], members: [] };
+let events = null, pollTimer = null, pollGen = 0, feedTimer = null, realtime = true;
+const FEED_POLL_MS = window.NH_POLL_MS || 10000;     // how often an admin's page checks for requests when live push is unavailable
+const LS_ATTEMPT = 'nexushub_attempt';
+const categories = () => [...new Set(links.map(l => l.category).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+const findByUrl = url => links.find(l => l.url === url);
+const closeModal = () => { $('#modalRoot').replaceChildren(); };
+function openModal(content, wide) {
+  const root = $('#modalRoot');
+  root.replaceChildren(h('div', { class: 'modal', onmousedown: e => { if (e.target.classList.contains('modal')) closeModal(); } },
+    h('div', { class: 'dialog' + (wide ? ' wide' : '') }, content)));
+}
+
+/* ============ api ============ */
+async function api(method, path, body) {
+  const res = await fetch(path, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body) });
+  let data = null; try { data = await res.json(); } catch (e) { /* no body */ }
+  if (!res.ok) {
+    if (res.status === 401 && me && !path.startsWith('/api/auth/')) sessionExpired();
+    const err = new Error((data && data.error) || 'Request failed (' + res.status + ')');
+    err.status = res.status; err.data = data;
+    throw err;
+  }
+  return data;
+}
+function sessionExpired() { if (!me) return; leaveApp(); toast('Your session ended. Please log in again.'); }
+async function loadLinks() { links = await api('GET', '/api/links'); render(); }
+
+/* ============ signed in / signed out ============ */
+function applyMode() {
+  document.querySelectorAll('.admin-only').forEach(e => e.classList.toggle('hidden', !isAdmin));
+  document.querySelectorAll('.owner-only').forEach(e => e.classList.toggle('hidden', !isOwner));
+  $('#modeBadge').textContent = me ? me.username + ' · ' + (isOwner ? 'Owner' : isAdmin ? 'Admin' : 'Viewer') : '';
+  render();
+}
+async function enterApp(user) {
+  stopPolling(); clearAttempt();
+  me = user; isAdmin = user.role === 'admin'; isOwner = !!user.isOwner;
+  $('#authRoot').classList.add('hidden'); $('#appRoot').classList.remove('hidden'); $('#navTools').classList.remove('hidden');
+  applyMode();
+  try { await loadLinks(); } catch (e) { toast(e.message); }
+  if (isAdmin) { try { realtime = (await api('GET', '/api/status')).realtime !== false; } catch (e) { realtime = true; } loadPending(); startAdminFeed(); }
+}
+function leaveApp() {
+  stopEvents(); stopFeedPolling(); stopPolling();
+  me = null; isAdmin = false; isOwner = false; links = []; pending = { logins: [], accounts: [], members: [] };
+  closeModal();
+  $('#appRoot').classList.add('hidden'); $('#navTools').classList.add('hidden'); $('#authRoot').classList.remove('hidden');
+  showAuth('signup');
+}
+$('#btnAuth').onclick = async () => { try { await api('POST', '/api/auth/logout', {}); } catch (e) { /* leave anyway */ } leaveApp(); };
+
+/* ============ signup + login pages ============ */
+function authLinks(current) {
+  const all = [['signup', 'Create account'], ['admin', 'Admin login'], ['viewer', 'Viewer login']].filter(x => x[0] !== current);
+  return h('div', { class: 'authlinks' },
+    h('div', { class: 'lbl', text: current === 'signup' ? 'Already have an account?' : 'Other options' }),
+    all.map(([view, label]) => h('button', { type: 'button', text: label, onclick: () => showAuth(view) })));
+}
+async function showAuth(view, note) {
+  stopPolling();
+  const root = $('#authRoot');
+  root.replaceChildren(view === 'signup' ? await signupCard(note) : loginCard(view, note));
+}
+async function signupCard(note) {
+  let st = { ownerExists: true, setupCodeRequired: false };
+  try { st = await api('GET', '/api/status'); } catch (e) { /* offline: keep defaults */ }
+  const user = h('input', { type: 'text', placeholder: 'Username', autocomplete: 'username', maxlength: 32 });
+  const pw = h('input', { type: 'password', placeholder: 'Password (at least 8 characters)', autocomplete: 'new-password' });
+  const pw2 = h('input', { type: 'password', placeholder: 'Confirm password', autocomplete: 'new-password' });
+  const code = h('input', { type: 'password', placeholder: 'Owner setup code', autocomplete: 'off' });
+  const codeField = h('div', { class: 'hidden' }, code);
+  const rV = h('input', { type: 'radio', name: 'role', value: 'viewer', checked: true });
+  const rA = h('input', { type: 'radio', name: 'role', value: 'admin' });
+  const info = h('div', { class: 'hint' });
+  const msg = h('div', { class: 'msg ' + ((note && note.kind) || ''), text: (note && note.text) || '' });
+  const sync = () => {
+    const admin = rA.checked;
+    codeField.classList.toggle('hidden', !(admin && !st.ownerExists && st.setupCodeRequired));
+    info.textContent = !admin ? 'Viewers can browse and launch links. An admin has to accept your account before you can log in.'
+      : st.ownerExists ? 'Admin accounts must be approved by the owner before they can log in.'
+      : 'No owner exists yet, so you will become the owner (the first admin).';
+  };
+  rV.addEventListener('change', sync); rA.addEventListener('change', sync); sync();
+  const btn = h('button', { type: 'submit', class: 'primary', text: 'Create account' });
+  const form = h('form', { onsubmit: async e => {
+    e.preventDefault();
+    msg.className = 'msg'; msg.textContent = '';
+    if (pw.value !== pw2.value) { msg.className = 'msg err'; msg.textContent = 'Passwords do not match.'; return; }
+    btn.disabled = true;
+    try {
+      const r = await api('POST', '/api/auth/signup', { username: user.value.trim(), password: pw.value, role: rA.checked ? 'admin' : 'viewer', setupCode: code.value });
+      msg.className = 'msg good'; msg.textContent = r.message;
+      user.value = ''; pw.value = ''; pw2.value = ''; code.value = '';
+      try { st = await api('GET', '/api/status'); } catch (e2) { /* ignore */ }
+      sync();
+    } catch (err) { msg.className = 'msg err'; msg.textContent = err.message; }
+    btn.disabled = false;
+  } }, user, pw, pw2, h('div', { class: 'rolepick' }, h('label', {}, rV, 'Viewer'), h('label', {}, rA, 'Admin')), codeField, info, msg, btn);
+  return h('div', { class: 'authcard' }, h('h1', { text: 'Create your account' }), h('p', { class: 'sub', text: 'Sign up to use Nexus Hub.' }), form, authLinks('signup'));
+}
+function loginCard(kind, note) {
+  const adminLogin = kind === 'admin';
+  const user = h('input', { type: 'text', placeholder: 'Username', autocomplete: 'username', maxlength: 32 });
+  const pw = h('input', { type: 'password', placeholder: 'Password', autocomplete: 'current-password' });
+  const msg = h('div', { class: 'msg ' + ((note && note.kind) || ''), text: (note && note.text) || '' });
+  const btn = h('button', { type: 'submit', class: 'primary', text: adminLogin ? 'Admin login' : 'Viewer login' });
+  const form = h('form', { onsubmit: async e => {
+    e.preventDefault();
+    msg.className = 'msg'; msg.textContent = ''; btn.disabled = true;
+    try {
+      const r = await api('POST', '/api/auth/login/' + kind, { username: user.value.trim(), password: pw.value });
+      if (r.status === 'pending') {
+        saveAttempt({ id: r.attemptId, claimToken: r.claimToken, username: user.value.trim(), selfApproval: !!r.selfApproval });
+        showWaiting();
+        return;
+      }
+      await enterApp(r.user);
+      if (r.freeLoginsTotal) toast('Free admin login ' + r.freeLoginsUsed + ' of ' + r.freeLoginsTotal + ' used. After that, every login needs the owner to approve it.', 6000);
+    } catch (err) { msg.className = 'msg err'; msg.textContent = err.message; btn.disabled = false; }
+  } }, user, pw, msg, btn);
+  return h('div', { class: 'authcard' }, h('h1', { text: adminLogin ? 'Admin login' : 'Viewer login' }),
+    h('p', { class: 'sub', text: adminLogin ? 'For admin accounts.' : 'For viewer accounts.' }), form, authLinks(kind));
+}
+
+/* ============ waiting for the owner to approve a login ============ */
+const readAttempt = () => { try { return JSON.parse(localStorage.getItem(LS_ATTEMPT) || 'null'); } catch (e) { return null; } };
+const saveAttempt = a => { try { localStorage.setItem(LS_ATTEMPT, JSON.stringify(a)); } catch (e) { /* ignore */ } };
+const clearAttempt = () => { try { localStorage.removeItem(LS_ATTEMPT); } catch (e) { /* ignore */ } };
+function stopPolling() { clearTimeout(pollTimer); pollTimer = null; pollGen++; }
+function showWaiting() {
+  const att = readAttempt();
+  if (!att) { showAuth('signup'); return; }
+  stopPolling();
+  const gen = pollGen;
+  const status = h('div', { class: 'msg' });
+  const cancel = h('button', { type: 'button', text: 'Cancel request', onclick: async () => {
+    stopPolling();
+    try { await api('POST', '/api/auth/attempts/' + att.id + '/cancel', { claimToken: att.claimToken }); } catch (e) { /* ignore */ }
+    clearAttempt(); showAuth('admin');
+  } });
+  $('#authRoot').replaceChildren(h('div', { class: 'authcard', style: 'text-align:center' },
+    h('div', { class: 'spinner' }),
+    h('h1', { text: 'Waiting for approval' }),
+    h('p', { class: 'sub', text: 'A login request for "' + att.username + '" was sent to the owner. This page continues on its own as soon as they accept. You can leave it open.' }),
+    att.selfApproval ? h('p', { class: 'hint', text: 'This is the owner account, so approval has to come from another browser or device where you are already logged in as the owner (use the bell icon). Locked out? On the server run: npm run admin -- approve-login ' + att.id }) : null,
+    status, h('div', { class: 'foot', style: 'justify-content:center' }, cancel)));
+  const tick = async () => {
+    if (gen !== pollGen) return;
+    try {
+      const r = await api('POST', '/api/auth/attempts/' + att.id + '/claim', { claimToken: att.claimToken });
+      if (gen !== pollGen) return;
+      if (r.status === 'ok') { await enterApp(r.user); toast('Login approved. Welcome!'); return; }
+      if (r.status !== 'pending') {
+        clearAttempt();
+        const text = { declined: 'The owner declined this login.', expired: 'Nobody answered in time, so the request expired.', cancelled: 'Login request cancelled.' }[r.status] || 'That login request was already used.';
+        showAuth('admin', { text, kind: 'err' });
+        return;
+      }
+      status.textContent = '';
+    } catch (e) {
+      if (gen !== pollGen) return;
+      if (e.status === 404) { clearAttempt(); showAuth('admin', { text: 'That login request no longer exists. Please log in again.', kind: 'err' }); return; }
+      status.textContent = 'Connection problem, retrying...';
+    }
+    pollTimer = setTimeout(tick, 2500);
+  };
+  tick();
+}
+
+/* ============ owner notifications and approvals ============ */
+const pendingCount = () => pending.logins.length + pending.accounts.length + pending.members.length;
+function relTime(ms) {
+  const s = Math.round((Date.now() - ms) / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.round(s / 60);
+  if (m < 60) return m + ' min ago';
+  const hr = Math.round(m / 60);
+  return hr < 48 ? hr + ' h ago' : new Date(ms).toLocaleString();
+}
+function pendingRows() {
+  const rows = [];
+  const row = (title, sub, kind, id) => h('div', { class: 'pendrow' },
+    h('div', { class: 'who', text: title }), h('div', { class: 'when', text: sub }),
+    h('div', { class: 'btns' },
+      h('button', { class: 'primary', text: 'Accept', onclick: () => decide(kind, id, 'accept') }),
+      h('button', { class: 'danger', text: 'Decline', onclick: () => decide(kind, id, 'decline') })));
+  pending.logins.forEach(a => rows.push(row('Admin login attempt: ' + a.username, relTime(a.createdAt) + ' · ' + a.ip + ' · ' + (a.userAgent || 'unknown browser'), 'logins', a.id)));
+  pending.accounts.forEach(a => rows.push(row('New admin account request: ' + a.username, relTime(a.createdAt), 'accounts', a.id)));
+  pending.members.forEach(a => rows.push(row('New member request: ' + a.username, relTime(a.createdAt), 'members', a.id)));
+  if (!rows.length) rows.push(h('p', { class: 'hint', text: 'Nothing is waiting for approval.' }));
+  return rows;
+}
+async function decide(kind, id, decision) {
+  try { await api('POST', '/api/admin/' + kind + '/' + id + '/decision', { decision }); toast(decision === 'accept' ? 'Accepted' : 'Declined'); }
+  catch (e) { toast(e.message); }
+  loadPending();
+}
+function updateBell() {
+  const b = $('#bellBadge'), n = pendingCount();
+  b.textContent = n; b.classList.toggle('hidden', !n);
+  const p = $('#pendingPanel');
+  if (p) p.replaceChildren(...pendingRows());
+}
+async function loadPending() {
+  if (!isAdmin) return;
+  const before = pending.accounts.length + pending.members.length;
+  const knownLogins = new Set(pending.logins.map(l => l.id));
+  try { pending = await api('GET', '/api/admin/pending'); } catch (e) { return; }
+  if (pending.accounts.length + pending.members.length > before) toast('A new account request is waiting for your approval (bell icon).', 8000);
+  if (!realtime) {                       // no live push on this host, so announce new login requests from the regular check
+    pending.logins.filter(l => !knownLogins.has(l.id)).forEach(l => {
+      const text = 'Admin login attempt for "' + l.username + '". Accept or decline it with the bell icon.';
+      toast(text, 10000); desktopNotify(text);
+    });
+  }
+  updateBell();
+  if ($('#membersPanel')) renderMembers();
+}
+function openPending() {
+  const notifBtn = ('Notification' in window && Notification.permission === 'default')
+    ? h('button', { text: 'Enable desktop alerts', onclick: async e => { await Notification.requestPermission(); e.target.remove(); } }) : null;
+  openModal([h('h2', { text: 'Waiting for your approval' }), h('div', { id: 'pendingPanel' }, ...pendingRows()),
+    h('div', { class: 'foot' }, notifBtn, h('button', { text: 'Close', onclick: closeModal }))]);
+  loadPending();
+}
+function desktopNotify(text) {
+  try { if ('Notification' in window && Notification.permission === 'granted' && document.hidden) new Notification('Nexus Hub', { body: text }); } catch (e) { /* ignore */ }
+}
+function startEvents() {
+  stopEvents();
+  events = new EventSource('/api/admin/events');
+  events.addEventListener('login-attempt', ev => {
+    let d = {}; try { d = JSON.parse(ev.data); } catch (e) { /* ignore */ }
+    const text = 'Admin login attempt for "' + (d.username || '?') + '". Accept or decline it with the bell icon.';
+    toast(text, 10000); desktopNotify(text); loadPending();
+  });
+  events.addEventListener('refresh', loadPending);
+  events.onerror = () => { if (events && events.readyState === 2) api('GET', '/api/me').catch(() => {}); };   // closed => session probably gone
+}
+function stopEvents() { if (events) { events.close(); events = null; } }
+// Live push where the host allows it; otherwise a gentle check every few seconds while the page is open and visible.
+function startAdminFeed() {
+  stopEvents(); stopFeedPolling();
+  if (realtime) { startEvents(); return; }
+  feedTimer = setInterval(() => { if (!document.hidden) loadPending(); }, FEED_POLL_MS);
+}
+function stopFeedPolling() { clearInterval(feedTimer); feedTimer = null; }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && me && isAdmin && !realtime) loadPending(); });
+$('#btnBell').onclick = openPending;
+
+/* ============ members (admins) ============ */
+let membersCache = [];
+async function renderMembers() {
+  const box = $('#membersPanel');
+  if (!box) return;
+  try { membersCache = await api('GET', '/api/admin/members'); } catch (e) { box.replaceChildren(h('p', { class: 'hint', text: e.message })); return; }
+  const label = m => m.isOwner ? 'Owner' : m.status === 'pending' ? (m.role === 'admin' ? 'Admin (waiting for owner)' : 'Waiting for acceptance')
+    : m.status === 'declined' ? 'Declined' : m.role === 'admin' ? 'Admin' : 'Viewer';
+  const rows = membersCache.map(m => {
+    const mine = me && m.id === me.id;
+    const btns = [];
+    if (m.status === 'pending' && m.role === 'viewer') {
+      btns.push(h('button', { class: 'primary', text: 'Accept', onclick: () => memberAct('POST', '/api/admin/members/' + m.id + '/decision', { decision: 'accept' }, 'Accepted') }));
+      btns.push(h('button', { text: 'Decline', onclick: () => memberAct('POST', '/api/admin/members/' + m.id + '/decision', { decision: 'decline' }, 'Declined') }));
+    }
+    if (m.role === 'viewer' && m.status === 'active') btns.push(h('button', { text: 'Make admin', onclick: () => {
+      if (confirm('Make "' + m.username + '" an admin? They can add, edit and delete links and accept new members.')) memberAct('POST', '/api/admin/members/' + m.id + '/promote', {}, m.username + ' is now an admin'); } }));
+    const canRemove = !m.isOwner && !mine && (m.role === 'viewer' || isOwner);
+    if (canRemove) btns.push(h('button', { class: 'danger', text: 'Remove', onclick: () => {
+      if (confirm('Remove "' + m.username + '"? They will be signed out and can sign up again.')) memberAct('DELETE', '/api/admin/members/' + m.id, undefined, 'Removed'); } }));
+    return h('tr', {}, h('td', { text: m.username + (mine ? ' (you)' : '') }), h('td', { text: label(m) }),
+      h('td', { text: new Date(m.createdAt).toLocaleDateString() }), h('td', {}, h('div', { class: 'btns' }, btns)));
+  });
+  box.replaceChildren(h('div', { class: 'tablewrap', style: 'max-height:60vh' }, h('table', {},
+    h('thead', {}, h('tr', {}, h('th', { text: 'Username' }), h('th', { text: 'Role' }), h('th', { text: 'Joined' }), h('th', { text: '' }))), h('tbody', {}, rows))));
+}
+async function memberAct(method, path, body, okMsg) {
+  try { await api(method, path, body); toast(okMsg); } catch (e) { toast(e.message); }
+  loadPending(); renderMembers();
+}
+function openMembers() {
+  openModal([h('h2', { text: 'Members' }), h('div', { id: 'membersPanel' }, h('p', { class: 'hint', text: 'Loading...' })),
+    h('div', { class: 'foot' }, h('button', { text: 'Close', onclick: closeModal }))], true);
+  renderMembers();
+}
+$('#btnMembers').onclick = openMembers;
+
+/* ============ launching ============ */
+function iframeOverlay(url) {
+  const ov = h('div', { class: 'overlay' },
+    h('div', { class: 'bar' }, h('span', { text: url }),
+      h('button', { text: 'Open in tab', onclick: () => window.open(url, '_blank', 'noopener') }),
+      h('button', { text: 'Close', onclick: () => ov.remove() })),
+    h('iframe', { src: url, allow: 'fullscreen; autoplay; clipboard-write', referrerpolicy: 'no-referrer' }));
+  document.body.append(ov);
+}
+// What the about:blank tab shows in the browser's tab strip. Change these two lines to use another cover.
+const CLOAK_TITLE = 'IXL | Math, Language Arts, Science, Social Studies, and Spanish';
+const CLOAK_ICON_DOMAIN = 'ixl.com';
+function launchCloaked(url) {
+  const w = window.open('about:blank', '_blank');
+  if (!w) { toast('Popup blocked, showing in-page instead'); iframeOverlay(url); return; }
+  const d = w.document;
+  d.title = CLOAK_TITLE;
+  const icon = d.createElement('link');
+  icon.rel = 'icon';
+  icon.href = 'https://www.google.com/s2/favicons?domain=' + CLOAK_ICON_DOMAIN + '&sz=64';
+  d.head.appendChild(icon);
+  d.body.style.cssText = 'margin:0;height:100vh;overflow:hidden;background:#fff';
+  const f = d.createElement('iframe');
+  f.src = url;
+  f.style.cssText = 'border:0;width:100%;height:100%';
+  f.setAttribute('allow', 'fullscreen; autoplay; clipboard-write');
+  d.body.appendChild(f);
+}
+
+/* ============ render ============ */
+function render() {
+  // category filter
+  const cf = $('#catFilter'), prev = cf.value;
+  cf.replaceChildren(h('option', { value: '', text: 'All categories' }), ...categories().map(c => h('option', { value: c, text: c })));
+  cf.value = categories().includes(prev) ? prev : '';
+  $('#catList').replaceChildren(...categories().map(c => h('option', { value: c })));
+
+  const q = $('#search').value.trim().toLowerCase(), cat = cf.value, st = $('#statusFilter').value;
+  const list = links.filter(l =>
+    (!cat || l.category === cat) && (!st || l.status === st) &&
+    (!q || (l.title + ' ' + l.url + ' ' + l.category).toLowerCase().includes(q)));
+
+  const grid = $('#grid'), empty = $('#empty');
+  grid.replaceChildren(...list.map(card));
+  empty.classList.toggle('hidden', list.length > 0);
+  empty.textContent = links.length ? 'No links match your filters.'
+    : (isAdmin ? 'No links yet. Use Bulk Add or Add Link to get started.' : 'No links yet. Log in as admin to add some.');
+}
+function favNode(l) {
+  const box = h('div', { class: 'fav' });
+  const src = l.logo || faviconFor(l.url);
+  const img = h('img', { src, alt: '', referrerpolicy: 'no-referrer' });
+  img.onerror = () => { box.replaceChildren(document.createTextNode((l.title || '?')[0].toUpperCase())); };
+  box.append(img);
+  return box;
+}
+function card(l) {
+  const statusEl = isAdmin
+    ? h('button', { class: 'st ' + l.status, text: l.status, title: 'Click to change status', onclick: async () => {
+        const next = STATUSES[(STATUSES.indexOf(l.status) + 1) % 3];
+        try { await api('PUT', '/api/links/' + l.id, { ...l, status: next }); l.status = next; render(); } catch (e) { toast(e.message); } } })
+    : h('span', { class: 'st ' + l.status, text: l.status });
+  return h('div', { class: 'card' },
+    h('div', { class: 'top' }, favNode(l),
+      h('div', { class: 'titles' }, h('h3', { text: l.title }), h('div', { class: 'host', text: hostOf(l.url) }))),
+    h('div', { class: 'meta' }, l.category ? h('span', { class: 'tag', text: l.category }) : null, statusEl),
+    h('div', { class: 'row' },
+      h('button', { class: 'primary', text: 'Launch', onclick: () => launchCloaked(l.url) }),
+      h('button', { text: 'Preview', onclick: () => iframeOverlay(l.url) }),
+      isAdmin ? h('button', { text: 'Edit', onclick: () => editLink(l) }) : null,
+      isAdmin ? h('button', { class: 'danger', text: 'Delete', title: 'Shift+click to delete without confirmation', onclick: async e => {
+        if (!(e.shiftKey || confirm('Delete "' + l.title + '"?\n(Tip: hold Shift while clicking Delete to skip this popup)'))) return;
+        try { await api('DELETE', '/api/links/' + l.id); links = links.filter(x => x.id !== l.id); render(); } catch (err) { toast(err.message); } } }) : null));
+}
+['input', 'change'].forEach(ev => ['#search', '#catFilter', '#statusFilter'].forEach(s => $(s).addEventListener(ev, render)));
+
+/* ============ add / edit single ============ */
+function editLink(existing) {
+  const l = existing || { title: '', url: '', category: '', status: 'Working', logo: '' };
+  const f = {
+    url: h('input', { value: l.url, placeholder: 'https://example.com' }),
+    title: h('input', { value: l.title, placeholder: 'Auto-filled from the URL if empty' }),
+    category: h('input', { value: l.category, list: 'catList', placeholder: 'e.g. Games' }),
+    status: h('select', {}, STATUSES.map(s => h('option', { text: s }))),
+    logo: h('input', { value: isDataImg(l.logo) ? '' : l.logo, placeholder: 'Image URL (optional, defaults to site favicon)' })
+  };
+  f.status.value = l.status;
+  let logoData = isDataImg(l.logo) ? l.logo : '';
+  const logoNote = h('span', { class: 'hint', text: logoData ? 'Uploaded image attached' : '' });
+  const logoTools = h('div', { class: 'foot', style: 'justify-content:flex-start;margin:4px 0 0' },
+    h('button', { text: 'Upload image', onclick: async () => {
+      const [file] = await pickFiles(false); if (!file) return;
+      try { logoData = await fileToDataUrl(file); f.logo.value = ''; logoNote.textContent = 'Uploaded image attached'; }
+      catch (e) { toast('That file could not be read as an image'); } } }),
+    h('button', { text: 'Clear image', onclick: () => { logoData = ''; f.logo.value = ''; logoNote.textContent = ''; } }),
+    logoNote);
+  const err = h('div', { class: 'hint', style: 'color:var(--bad)' });
+  const field = (label, el) => h('div', { class: 'field' }, h('label', { text: label }), el);
+  openModal([
+    h('h2', { text: existing ? 'Edit link' : 'Add link' }),
+    field('URL', f.url), field('Title', f.title), field('Category', f.category), field('Status', f.status), h('div', { class: 'field' }, h('label', { text: 'Image' }), f.logo, logoTools), err,
+    h('div', { class: 'foot' }, h('button', { text: 'Cancel', onclick: closeModal }),
+      h('button', { class: 'primary', text: 'Save', onclick: async () => {
+        const url = normalizeUrl(f.url.value);
+        if (!url) { err.textContent = 'Enter a valid URL.'; return; }
+        const dup = findByUrl(url);
+        if (dup && dup !== existing) { err.textContent = 'That link already exists: "' + dup.title + '".'; return; }
+        const typed = f.logo.value.trim();
+        const logo = typed ? cleanLogo(typed) : logoData;
+        const payload = { url, title: f.title.value.trim() || autoDeriveTitle(url), category: f.category.value.trim(), status: f.status.value, logo };
+        try {
+          if (existing) await api('PUT', '/api/links/' + existing.id, payload);
+          else await api('POST', '/api/links', payload);
+          closeModal(); await loadLinks();
+        } catch (e) { err.textContent = e.message; }
+      } }))
+  ]);
+  setTimeout(() => f.url.focus(), 30);
+}
+$('#btnAdd').onclick = () => editLink(null);
+
+/* ============ bulk add ============ */
+function bulkAdd() {
+  let rows = [];                 // preview rows (objects with edit state)
+  const ta = h('textarea', { class: 'bulk', placeholder:
+    'Paste links, one per line. Any of these work:\n\nhttps://example.com\nexample.org\nMy Title | https://example.com | Games | Working | https://logo.png\nMy Title, https://example.com, Games\nMy Title<TAB>https://example.com<TAB>Games' });
+  const defCat = h('input', { list: 'catList', placeholder: 'Default category' });
+  const defSt = h('select', {}, STATUSES.map(s => h('option', { text: s })));
+  defSt.value = 'Testing';
+  // changing the defaults applies to every row currently in the preview
+  defSt.addEventListener('change', () => { rows.forEach(r => { r.status = defSt.value; }); renderRows(); });
+  defCat.addEventListener('change', () => { rows.forEach(r => { r.category = defCat.value.trim(); }); renderRows(); });
+  const summary = h('div', { class: 'hint' });
+  const skippedEl = h('div', { class: 'skipped hidden' });
+  const tbody = h('tbody');
+  const addBtn = h('button', { class: 'primary', text: 'Add links' });
+
+  const view = row => row; // rows are plain objects
+  function refreshSummary() {
+    const inc = rows.filter(r => r.include && (!r.dupOf || r.dupAction === 'replace'));
+    const unresolved = rows.filter(r => r.dupOf && !r.dupAction).length;
+    summary.textContent = rows.length
+      ? rows.length + ' link(s) detected, ' + inc.length + ' will be added' + (unresolved ? ', ' + unresolved + ' already exist (choose below, default is keep old)' : '')
+      : 'Nothing detected yet.';
+    addBtn.textContent = 'Add ' + inc.length + ' link(s)';
+    addBtn.disabled = !inc.length;
+  }
+  function renderRows() {
+    tbody.replaceChildren(...rows.map(r => {
+      const logoImg = h('img', { alt: '', src: r.logo || faviconFor(r.url), referrerpolicy: 'no-referrer' });
+      logoImg.onerror = () => { logoImg.style.visibility = 'hidden'; };
+      const tr = h('tr', { class: (r.dupOf ? 'dup ' : '') + (normalizeUrl(r.url) ? '' : 'invalid') });
+      const inc = h('input', { type: 'checkbox', checked: r.include, onchange: e => { r.include = e.target.checked; refreshSummary(); } });
+      const titleIn = h('input', { value: r.title, placeholder: autoDeriveTitle(r.url), oninput: e => { r.title = e.target.value; } });
+      const urlIn = h('input', { class: 'url', value: r.url, oninput: e => {
+        r.url = e.target.value; const n = normalizeUrl(r.url);
+        tr.classList.toggle('invalid', !n);
+        const d = n && findByUrl(n); r.dupOf = d ? d.id : null; r.dupAction = r.dupAction && d ? r.dupAction : '';
+        logoImg.src = r.logo || faviconFor(n || ''); refreshSummary();
+      } });
+      const catIn = h('input', { list: 'catList', value: r.category, oninput: e => { r.category = e.target.value; } });
+      const stSel = h('select', { onchange: e => { r.status = e.target.value; } }, STATUSES.map(s => h('option', { text: s })));
+      stSel.value = r.status;
+      const logoIn = h('input', { value: isDataImg(r.logo) ? '' : r.logo, placeholder: isDataImg(r.logo) ? 'uploaded image' : 'image URL / auto favicon', oninput: e => {
+        r.logo = e.target.value.trim(); logoImg.style.visibility = 'visible'; logoImg.src = r.logo || faviconFor(r.url); } });
+      const upBtn = h('button', { text: '↑', title: 'Upload image for this row', onclick: async () => {
+        const [file] = await pickFiles(false); if (!file) return;
+        try { r.logo = await fileToDataUrl(file); renderRows(); } catch (e) { toast('That file could not be read as an image'); } } });
+      const del = h('button', { class: 'danger', text: '\u00d7', title: 'Remove row', onclick: () => { rows = rows.filter(x => x !== r); renderRows(); } });
+
+      let dupBox = null;
+      if (r.dupOf) {
+        const old = links.find(l => l.id === r.dupOf);
+        const bKeep = h('button', { text: 'Keep old', class: r.dupAction === 'keep' ? 'on' : '', onclick: () => { r.dupAction = 'keep'; renderRows(); } });
+        const bRep = h('button', { text: 'Delete old & add new', class: r.dupAction === 'replace' ? 'on' : '', onclick: () => { r.dupAction = 'replace'; renderRows(); } });
+        dupBox = h('div', { class: 'dupbox' }, 'Already exists as "' + (old ? old.title : '?') + '". Delete the old one?', bRep, bKeep);
+      }
+      tr.append(
+        h('td', {}, inc),
+        h('td', { class: 'logo' }, logoImg, logoIn, upBtn),
+        h('td', {}, titleIn),
+        h('td', {}, urlIn, dupBox),
+        h('td', {}, catIn), h('td', {}, stSel), h('td', {}, del));
+      return tr;
+    }));
+    refreshSummary();
+  }
+  function reparse() {
+    const prev = new Map(rows.map(r => [r.url, r]));
+    const { rows: parsed, skipped } = parseBulk(ta.value);
+    rows = parsed.map(p => {
+      if (prev.has(p.url)) return prev.get(p.url);      // keep manual edits for unchanged URLs
+      const d = findByUrl(p.url);
+      return { title: p.title, url: p.url, logo: p.logo, category: p.category || defCat.value.trim(), status: p.status || defSt.value,
+               include: !d, dupOf: d ? d.id : null, dupAction: '' };
+    });
+    skippedEl.classList.toggle('hidden', !skipped.length);
+    skippedEl.textContent = skipped.length ? 'Could not find a link in ' + skipped.length + ' line(s), skipped:\n' + skipped.join('\n') : '';
+    renderRows();
+  }
+  let timer; const debounced = () => { clearTimeout(timer); timer = setTimeout(reparse, 120); };
+  ta.addEventListener('input', debounced);
+  ta.addEventListener('paste', () => setTimeout(reparse, 0));
+  ta.addEventListener('change', reparse);
+
+  addBtn.onclick = async () => {
+    const items = [];
+    let bad = 0;
+    rows.forEach(r => {
+      if (!r.include) return;
+      const url = normalizeUrl(r.url);
+      if (!url) { bad++; return; }
+      const dup = findByUrl(url);
+      if (dup && r.dupAction !== 'replace') return;
+      items.push({ title: r.title.trim() || autoDeriveTitle(url), url, category: r.category.trim(), status: r.status, logo: cleanLogo(r.logo), replaceExisting: !!dup });
+    });
+    if (!items.length) { toast('Nothing to add'); return; }
+    addBtn.disabled = true;
+    try {
+      const out = await api('POST', '/api/links/bulk', { items });
+      closeModal(); await loadLinks();
+      toast('Added ' + out.added + (out.replaced ? ' (' + out.replaced + ' replaced)' : '') + (bad + out.invalid ? ', ' + (bad + out.invalid) + ' invalid skipped' : ''));
+    } catch (e) { toast(e.message); addBtn.disabled = false; }
+  };
+
+  const th = t => h('th', { text: t });
+  openModal([
+    h('h2', { text: 'Bulk add links' }), ta,
+    h('div', { class: 'foot', style: 'justify-content:flex-start' },
+      h('button', { text: 'Parse', onclick: reparse }),
+      h('span', { class: 'hint', text: 'Set for all rows:' }), defCat, defSt),
+    h('div', { class: 'foot', style: 'justify-content:flex-start;margin-top:8px' },
+      h('button', { text: 'Upload images (match rows in order)', title: 'Pick many files; they fill rows that have no image yet, sorted by file name', onclick: async () => {
+        if (!rows.length) { toast('Paste some links first'); return; }
+        const files = (await pickFiles(true)).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+        if (!files.length) return;
+        const empty = rows.filter(r => !r.logo);
+        let n = 0;
+        for (let i = 0; i < Math.min(files.length, empty.length); i++) {
+          try { empty[i].logo = await fileToDataUrl(files[i]); n++; } catch (e) { /* skip non-images */ }
+        }
+        renderRows();
+        toast(n + ' image(s) assigned' + (files.length > empty.length ? ', ' + (files.length - empty.length) + ' extra file(s) ignored (no empty rows left)' : ''));
+      } }),
+      h('button', { text: 'One image for all rows', title: 'Overwrites the image on every row', onclick: async () => {
+        if (!rows.length) { toast('Paste some links first'); return; }
+        const [file] = await pickFiles(false); if (!file) return;
+        try { const d = await fileToDataUrl(file); rows.forEach(r => { r.logo = d; }); renderRows(); toast('Image applied to ' + rows.length + ' row(s)'); }
+        catch (e) { toast('That file could not be read as an image'); }
+      } }),
+      h('span', { class: 'hint', text: 'You can also paste an image URL on each line, or use the ↑ button on a row.' })),
+    summary, skippedEl,
+    h('div', { class: 'tablewrap' }, h('table', {}, h('thead', {}, h('tr', {}, th(''), th('Logo'), th('Title'), th('URL'), th('Category'), th('Status'), th(''))), tbody)),
+    h('div', { class: 'foot' }, h('button', { text: 'Cancel', onclick: closeModal }), addBtn)
+  ], true);
+  refreshSummary();
+  setTimeout(() => ta.focus(), 30);
+}
+$('#btnBulk').onclick = bulkAdd;
+
+/* ============ import / export ============ */
+$('#btnDownload').onclick = () => {
+  const blob = new Blob([JSON.stringify({ app: 'nexus-hub', version: 1, links }, null, 2)], { type: 'application/json' });
+  const a = h('a', { href: URL.createObjectURL(blob), download: 'nexus-hub-links.json' });
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('#btnUpload').onclick = () => $('#fileInput').click();
+$('#fileInput').onchange = async e => {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const arr = Array.isArray(data) ? data : data.links;
+    if (!Array.isArray(arr)) throw new Error('no links array');
+    const out = await api('POST', '/api/links/bulk', { items: arr.slice(0, 1000).map(x => ({ title: x && x.title, url: x && x.url, category: x && x.category, status: x && x.status, logo: x && x.logo })) });
+    await loadLinks();
+    toast('Imported ' + out.added + ' link(s)' + (out.skipped + out.invalid ? ', ' + (out.skipped + out.invalid) + ' skipped (invalid or already present)' : ''));
+  } catch (err) { toast(err.status ? err.message : 'Import failed: not a valid Nexus Hub JSON file'); }
+};
+
+/* ============ start ============ */
+(async function init() {
+  try {
+    const r = await api('GET', '/api/me');
+    await enterApp(r.user);
+  } catch (e) {
+    if (readAttempt()) showWaiting(); else showAuth('signup');
+  }
+})();
+</script>
+</body>
+</html>
